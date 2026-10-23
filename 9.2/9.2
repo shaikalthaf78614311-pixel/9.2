@@ -1,0 +1,54 @@
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
+import java.sql.Statement;
+
+public class DatabaseInsertExample {
+    private static final String JDBC_URL = "jdbc:mysql://localhost:3306/mydatabase";
+    private static final String USERNAME = "root";
+    private static final String PASSWORD = "password";
+
+    public static void main(String[] args) {
+        // FIX 1: Explicitly load the driver to prevent "No suitable driver found" runtime errors
+        try {
+            Class.forName("com.mysql.cj.jdbc.Driver");
+        } catch (ClassNotFoundException e) {
+            System.err.println("Error: MySQL JDBC Driver not found! Ensure the Connector/J JAR is in your classpath.");
+            return;
+        }
+
+        // Parent try-with-resources manages the connection lifecycle automatically
+        try (Connection connection = DriverManager.getConnection(JDBC_URL, USERNAME, PASSWORD)) {
+            
+            // FIX 2: Use standard Statement for static, parameterized-free DDL commands like CREATE TABLE
+            String createTableQuery = "CREATE TABLE IF NOT EXISTS users (" +
+                                      "id INT AUTO_INCREMENT PRIMARY KEY, " +
+                                      "name VARCHAR(255), " +
+                                      "email VARCHAR(255))";
+            try (Statement statement = connection.createStatement()) {
+                statement.execute(createTableQuery);
+            }
+
+            // Prepare the insert string template
+            String insertQuery = "INSERT INTO users (name, email) VALUES (?, ?)";
+            try (PreparedStatement insertStmt = connection.prepareStatement(insertQuery)) {
+                
+                // First Insert
+                insertStmt.setString(1, "John Doe");
+                insertStmt.setString(2, "johndoe@example.com");
+                insertStmt.executeUpdate();
+
+                // Second Insert
+                insertStmt.setString(1, "Jane Doe");
+                insertStmt.setString(2, "janedoe@example.com");
+                insertStmt.executeUpdate();
+
+                System.out.println("Data inserted successfully.");
+            }
+        } catch (SQLException e) {
+            System.err.println("Database transmission error occurred!");
+            e.printStackTrace();
+        }
+    }
+}
